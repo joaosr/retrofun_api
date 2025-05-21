@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import (
 from retrofun.db import Model
 from retrofun import models
 
+
 TEST_DATABASE_URL = (
     "postgresql+asyncpg://test_user:test_password@localhost:5433/test_db"
 )
