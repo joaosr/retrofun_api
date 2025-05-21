@@ -8,5 +8,17 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+  test_db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - test-db-data:/var/lib/postgresql/data
 volumes:
   db-data:
+  test-db-data:
