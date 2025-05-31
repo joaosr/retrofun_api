@@ -21,44 +21,6 @@ build:
   only:
     - main
 
-# terraform:
-#   stage: infra
-#   image: hashicorp/terraform:light
-#   # before_script:
-#   #     - echo "Starting Terraform setup"
-#   # script:
-#   #   - |
-#   #     # Use explicit shell to run multiple commands
-#   #     /bin/sh -c "
-#   #       mkdir -p ~/.ssh &&
-#   #       echo \"$SSH_PRIVATE_KEY\" > ~/.ssh/gitlab-ci &&
-#   #       chmod 600 ~/.ssh/gitlab-ci &&
-#   #       echo \"$SSH_PUBLIC_KEY\" > ~/.ssh/gitlab-ci.pub &&
-#   #       cd terraform &&
-#   #       terraform init &&
-#   #       terraform validate &&
-#   #       terraform plan -out=tfplan &&
-#   #       terraform apply -auto-approve tfplan &&
-#   #       terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
-#   #     "
-#   before_script:
-#     - mkdir -p ~/.ssh
-#     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
-#     - chmod 600 ~/.ssh/gitlab-ci
-#     - echo "$SSH_PUBLIC_KEY" > ~/.ssh/gitlab-ci.pub
-#   script:
-#     - cd terraform
-#     - terraform init
-#     - terraform validate
-#     - terraform plan -out=tfplan
-#     - terraform apply -auto-approve tfplan
-#     - terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
-#   artifacts:
-#     paths:
-#       - EC2_PUBLIC_IP.txt
-#   only:
-#     - main
-
 terraform:
   stage: infra
   image: alpine:3.18
@@ -101,8 +63,11 @@ deploy:
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
     - chmod 600 ~/.ssh/gitlab-ci
     - ssh -i ~/.ssh/gitlab-ci -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+        sudo apt update &&
+        sudo apt install -y make &&
+
         export DOCKER_IMAGE=$DOCKER_IMAGE &&
-        
+
         mkdir -p /home/ubuntu/retrofun_api &&
         cd /home/ubuntu/retrofun_api &&
         
