@@ -21,33 +21,56 @@ build:
   only:
     - main
 
+# terraform:
+#   stage: infra
+#   image: hashicorp/terraform:light
+#   # before_script:
+#   #     - echo "Starting Terraform setup"
+#   # script:
+#   #   - |
+#   #     # Use explicit shell to run multiple commands
+#   #     /bin/sh -c "
+#   #       mkdir -p ~/.ssh &&
+#   #       echo \"$SSH_PRIVATE_KEY\" > ~/.ssh/gitlab-ci &&
+#   #       chmod 600 ~/.ssh/gitlab-ci &&
+#   #       echo \"$SSH_PUBLIC_KEY\" > ~/.ssh/gitlab-ci.pub &&
+#   #       cd terraform &&
+#   #       terraform init &&
+#   #       terraform validate &&
+#   #       terraform plan -out=tfplan &&
+#   #       terraform apply -auto-approve tfplan &&
+#   #       terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
+#   #     "
+#   before_script:
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
+#     - chmod 600 ~/.ssh/gitlab-ci
+#     - echo "$SSH_PUBLIC_KEY" > ~/.ssh/gitlab-ci.pub
+#   script:
+#     - cd terraform
+#     - terraform init
+#     - terraform validate
+#     - terraform plan -out=tfplan
+#     - terraform apply -auto-approve tfplan
+#     - terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
+#   artifacts:
+#     paths:
+#       - EC2_PUBLIC_IP.txt
+#   only:
+#     - main
+
 terraform:
   stage: infra
-  image: hashicorp/terraform:light
-  # before_script:
-  #     - echo "Starting Terraform setup"
-  # script:
-  #   - |
-  #     # Use explicit shell to run multiple commands
-  #     /bin/sh -c "
-  #       mkdir -p ~/.ssh &&
-  #       echo \"$SSH_PRIVATE_KEY\" > ~/.ssh/gitlab-ci &&
-  #       chmod 600 ~/.ssh/gitlab-ci &&
-  #       echo \"$SSH_PUBLIC_KEY\" > ~/.ssh/gitlab-ci.pub &&
-  #       cd terraform &&
-  #       terraform init &&
-  #       terraform validate &&
-  #       terraform plan -out=tfplan &&
-  #       terraform apply -auto-approve tfplan &&
-  #       terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
-  #     "
+  image: alpine:3.18
   before_script:
+    - apk add --no-cache terraform openssh
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
-    - chmod 600 ~/.ssh/gitlab-ci
-    - echo "$SSH_PUBLIC_KEY" > ~/.ssh/gitlab-ci.pub
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab_ec2
+    - chmod 600 ~/.ssh/gitlab_ec2
+    - echo "$SSH_PUBLIC_KEY" > ~/.ssh/gitlab_ec2.pub
   script:
     - cd terraform
+    - terraform version
     - terraform init
     - terraform validate
     - terraform plan -out=tfplan
@@ -58,6 +81,7 @@ terraform:
       - EC2_PUBLIC_IP.txt
   only:
     - main
+
 
 deploy:
   stage: deploy
