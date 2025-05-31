@@ -24,6 +24,7 @@ build:
 terraform:
   stage: infra
   image: hashicorp/terraform:1.7
+  entrypoint: [""]
   before_script:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
