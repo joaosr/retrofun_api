@@ -2,8 +2,8 @@ import asyncio
 import csv
 from datetime import datetime
 from sqlalchemy import select, delete
-from db import Session
-from models import Product, Customer, Order, OrderItem
+from retrofun.db import Session
+from retrofun.models import Product, Customer, Order, OrderItem
 
 
 async def main():
