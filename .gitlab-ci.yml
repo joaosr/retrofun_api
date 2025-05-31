@@ -101,6 +101,8 @@ deploy:
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
     - chmod 600 ~/.ssh/gitlab-ci
     - ssh -i ~/.ssh/gitlab-ci -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+        export DOCKER_IMAGE=$DOCKER_IMAGE &&
+        
         mkdir -p /home/ubuntu/retrofun_api &&
         cd /home/ubuntu/retrofun_api &&
         
