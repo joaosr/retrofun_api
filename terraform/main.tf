@@ -47,7 +47,7 @@ resource "aws_subnet" "retrofun_subnet" {
   cidr_block = "10.0.1.0/24"
   availability_zone = "eu-central-1a"
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "app-subnet"
   }
@@ -78,13 +78,23 @@ resource "aws_instance" "retrofun_api_ec2" {
       user        = "ubuntu"
       private_key = file("~/.ssh/gitlab-ci")
       host        = self.public_ip
+      timeout     = "5m"
     }
   }
 }
 
 resource "aws_network_acl" "retrofun_nacl" {
-  vpc_id = aws_subnet.retrofun_subnet.vpc_id
+  vpc_id     = aws_vpc.main.id
   subnet_ids = [aws_subnet.retrofun_subnet.id]
+
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 50
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 22
+    to_port    = 22
+  }
 
   ingress {
     protocol   = "tcp"
