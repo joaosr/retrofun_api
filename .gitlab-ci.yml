@@ -62,8 +62,6 @@ deploy:
         sudo apt update &&
         sudo apt install -y make &&
 
-        export DOCKER_IMAGE=$DOCKER_IMAGE &&
-
         mkdir -p /home/ubuntu/retrofun_api &&
         cd /home/ubuntu/retrofun_api &&
         
@@ -77,6 +75,7 @@ deploy:
         echo \"DATABASE_USERNAME=$DATABASE_USERNAME\" >> .env &&
         echo \"DATABASE_PASSWORD=$DATABASE_PASSWORD\" >> .env &&
         echo \"DATABASE_URL=$DATABASE_URL\" >> .env &&
+        echo \"DOCKER_IMAGE=$DOCKER_IMAGE\" >> .env &&
         
         echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY &&
         
