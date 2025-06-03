@@ -16,7 +16,7 @@ resource "aws_vpc" "main" {
 resource "aws_security_group" "app_sg" {
   name        = "app-sg"
   description = "Allow SSH and app port"
-  vpc_id     = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     description = "SSH"
@@ -43,9 +43,9 @@ resource "aws_security_group" "app_sg" {
 }
 
 resource "aws_subnet" "retrofun_subnet" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
-  availability_zone = "eu-central-1a"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "eu-central-1a"
   map_public_ip_on_launch = true
 
   tags = {
@@ -53,12 +53,38 @@ resource "aws_subnet" "retrofun_subnet" {
   }
 }
 
+resource "aws_internet_gateway" "retrofun_igw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "retrofun-igw"
+  }
+}
+
+resource "aws_route_table" "retrofun_route_table" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.retrofun_igw.id
+  }
+
+  tags = {
+    Name = "retrofun-public-rt"
+  }
+}
+
+resource "aws_route_table_association" "retrofun_rta" {
+  subnet_id      = aws_subnet.retrofun_subnet.id
+  route_table_id = aws_route_table.retrofun_route_table.id
+}
+
 resource "aws_instance" "retrofun_api_ec2" {
-  ami           = "ami-03250b0e01c28d196"
-  instance_type = var.instance_type
-  key_name      = aws_key_pair.deployer_key.key_name
+  ami                    = "ami-03250b0e01c28d196"
+  instance_type          = var.instance_type
+  key_name               = aws_key_pair.deployer_key.key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  subnet_id = aws_subnet.retrofun_subnet.id
+  subnet_id              = aws_subnet.retrofun_subnet.id
 
   tags = {
     Name = "Retrofun-API-EC2"
