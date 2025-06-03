@@ -3,9 +3,20 @@ resource "aws_key_pair" "deployer_key" {
   public_key = file(var.public_key_path)
 }
 
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "retrofun-vpc"
+  }
+}
+
 resource "aws_security_group" "app_sg" {
   name        = "app-sg"
   description = "Allow SSH and app port"
+  vpc_id     = aws_vpc.main.id
 
   ingress {
     description = "SSH"
@@ -28,16 +39,6 @@ resource "aws_security_group" "app_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "retrofun-vpc"
   }
 }
 
