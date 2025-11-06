@@ -1,6 +1,7 @@
 stages:
   - build
   - infra
+  - configure
   - deploy
 
 variables:
@@ -30,64 +31,53 @@ terraform:
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
     - chmod 600 ~/.ssh/gitlab-ci
     - echo "$SSH_PUBLIC_KEY" > ~/.ssh/gitlab-ci.pub
-    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
   script:
-    - cd terraform
-    - terraform version
+    - cd infra/terraform
     - terraform init -reconfigure
     - terraform validate
     - terraform plan -out=tfplan
     - terraform apply -auto-approve tfplan
-    - terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
-    # - cd terraform
-    # - terraform init
-    # - terraform validate
-    # - terraform plan -out=tfplan
-    # - terraform apply -auto-approve tfplan
-    # - terraform output -raw ec2_public_ip > ../EC2_PUBLIC_IP.txt
+    - terraform output -raw ec2_public_ip > ../../EC2_PUBLIC_IP.txt
   artifacts:
     paths:
       - EC2_PUBLIC_IP.txt
   only:
     - main
 
+configure:
+  stage: configure
+  image: python:3.12
+  before_script:
+    - apt-get update && apt-get install -y openssh-client ansible
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
+    - chmod 600 ~/.ssh/gitlab-ci
+    - export EC2_HOST=$(cat EC2_PUBLIC_IP.txt)
+    - echo -e "[app]\n$EC2_HOST" > infra/ansible/inventory.ini
+  script:
+    - cd infra/ansible
+    - ansible-playbook -i inventory.ini playbook.yml --private-key ~/.ssh/gitlab-ci -u ubuntu -e DOCKER_IMAGE=$DOCKER_IMAGE
+  only:
+    - main
+  dependencies:
+    - terraform
 
 deploy:
   stage: deploy
   image: alpine:3.18
   before_script:
     - apk add --no-cache openssh
-  script:
-    - export EC2_HOST=$(cat EC2_PUBLIC_IP.txt)
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/gitlab-ci
     - chmod 600 ~/.ssh/gitlab-ci
+  script:
+    - export EC2_HOST=$(cat EC2_PUBLIC_IP.txt)
     - ssh -i ~/.ssh/gitlab-ci -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
-        sudo apt update &&
-        sudo apt install -y make &&
-
-        mkdir -p /home/ubuntu/retrofun_api &&
         cd /home/ubuntu/retrofun_api &&
-        
-        if [ ! -d .git ]; then
-          git clone https://gitlab.com/joaosr-group/retrofun_api.git .;
-        else
-          git pull origin main;
-        fi &&
-        
-        echo \"DATABASE_NAME=$DATABASE_NAME\" > .env &&
-        echo \"DATABASE_USERNAME=$DATABASE_USERNAME\" >> .env &&
-        echo \"DATABASE_PASSWORD=$DATABASE_PASSWORD\" >> .env &&
-        echo \"DATABASE_URL=$DATABASE_URL\" >> .env &&
-        echo \"DOCKER_IMAGE=$DOCKER_IMAGE\" >> .env &&
-        
-        echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY &&
-        
-        docker-compose down --remove-orphans &&
-        docker-compose pull &&
-        make docker
+        docker compose ps &&
+        docker compose logs --tail=50
       "
   only:
     - main
+  dependencies:
+    - configure
