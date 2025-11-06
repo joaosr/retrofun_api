@@ -85,6 +85,7 @@ deploy:
         
         echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY &&
         
+        docker-compose down --remove-orphans &&
         docker-compose pull &&
         make docker
       "
