@@ -111,12 +111,46 @@
     #     make docker
     #   args:
     #     executable: /bin/bash
+
+    # - name: Run app using docker compose
+    #   shell: |
+    #     cd /home/ubuntu/retrofun_api
+    #     sudo docker compose down --remove-orphans || true
+    #     sudo docker compose pull
+    #     sudo make docker
+    #   args:
+    #     executable: /bin/bash
     
-    - name: Run app using docker compose
+    - name: Run app using Docker Compose and apply migrations
       shell: |
         cd /home/ubuntu/retrofun_api
+
+        echo "🔄 Starting docker services..."
         sudo docker compose down --remove-orphans || true
         sudo docker compose pull
-        sudo make docker
+        sudo docker compose -f compose.yml up -d --remove-orphans
+
+        echo "⏳ Waiting for db to be healthy..."
+        timeout=30
+        while [ $timeout -gt 0 ]; do
+          STATUS=$(sudo docker inspect --format='{{.State.Health.Status}}' retrofun_api-db-1 || echo "starting")
+          echo "Current DB status: $STATUS"
+          if [ "$STATUS" = "healthy" ]; then
+            break
+          fi
+          sleep 2
+          timeout=$((timeout - 2))
+        done
+
+        if [ "$STATUS" != "healthy" ]; then
+          echo "❌ Database did not become healthy in time"
+          exit 1
+        fi
+
+        echo "✅ DB is healthy. Applying migrations and importing data..."
+        sudo docker compose exec -T api alembic upgrade head
+        sudo docker compose exec -T api python -m retrofun.import_products
+        sudo docker compose exec -T api python -m retrofun.import_orders
       args:
         executable: /bin/bash
+
