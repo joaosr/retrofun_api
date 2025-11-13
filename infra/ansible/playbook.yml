@@ -120,37 +120,96 @@
     #     sudo make docker
     #   args:
     #     executable: /bin/bash
+
+    # - name: Run app using Docker Compose and apply migrations
+    #   shell: |
+    #     cd /home/ubuntu/retrofun_api
+
+    #     echo "🔄 Starting docker services..."
+    #     sudo docker compose down --remove-orphans || true
+    #     sudo docker compose pull
+    #     sudo docker compose -f compose.yml up -d --remove-orphans
+
+    #     echo "⏳ Waiting for db to be healthy..."
+    #     timeout=30
+    #     while [ $timeout -gt 0 ]; do
+    #       STATUS=$(sudo docker inspect --format='{{.State.Health.Status}}' retrofun_api-db-1 || echo "starting")
+    #       echo "Current DB status: $STATUS"
+    #       if [ "$STATUS" = "healthy" ]; then
+    #         break
+    #       fi
+    #       sleep 2
+    #       timeout=$((timeout - 2))
+    #     done
+
+    #     if [ "$STATUS" != "healthy" ]; then
+    #       echo "❌ Database did not become healthy in time"
+    #       exit 1
+    #     fi
+
+    #     echo "✅ DB is healthy. Applying migrations and importing data..."
+    #     sudo docker compose exec -T api alembic upgrade head
+    #     sudo docker compose exec -T api python -m retrofun.import_products
+    #     sudo docker compose exec -T api python -m retrofun.import_orders
+    #   args:
+    #     executable: /bin/bash
     
-    - name: Run app using Docker Compose and apply migrations
+    - name: Ensure docker-compose services are stopped
+      shell: docker compose down --remove-orphans || true
+      args:
+        chdir: "{{ compose_dir }}"
+        executable: /bin/bash
+
+    - name: Pull latest images
+      shell: docker compose pull
+      args:
+        chdir: "{{ compose_dir }}"
+        executable: /bin/bash
+
+    - name: Start docker-compose services
+      shell: docker compose -f compose.yml up -d --remove-orphans
+      args:
+        chdir: "{{ compose_dir }}"
+        executable: /bin/bash
+
+    - name: Wait for Postgres to be healthy
       shell: |
-        cd /home/ubuntu/retrofun_api
-
-        echo "🔄 Starting docker services..."
-        sudo docker compose down --remove-orphans || true
-        sudo docker compose pull
-        sudo docker compose -f compose.yml up -d --remove-orphans
-
-        echo "⏳ Waiting for db to be healthy..."
         timeout=30
-        while [ $timeout -gt 0 ]; do
-          STATUS=$(sudo docker inspect --format='{{.State.Health.Status}}' retrofun_api-db-1 || echo "starting")
-          echo "Current DB status: $STATUS"
+        until [ "$timeout" -le 0 ]; do
+          STATUS=$(docker inspect --format='{{'{{'}}.State.Health.Status{{'}}'}}' {{ db_container_name }} 2>/dev/null || echo "starting")
+          echo "⏳ DB status: $STATUS"
           if [ "$STATUS" = "healthy" ]; then
-            break
+            exit 0
           fi
           sleep 2
           timeout=$((timeout - 2))
         done
-
-        if [ "$STATUS" != "healthy" ]; then
-          echo "❌ Database did not become healthy in time"
-          exit 1
-        fi
-
-        echo "✅ DB is healthy. Applying migrations and importing data..."
-        sudo docker compose exec -T api alembic upgrade head
-        sudo docker compose exec -T api python -m retrofun.import_products
-        sudo docker compose exec -T api python -m retrofun.import_orders
+        echo "❌ DB did not become healthy"
+        exit 1
+      register: db_health_check
+      failed_when: db_health_check.rc != 0
+      changed_when: false
       args:
+        chdir: "{{ compose_dir }}"
         executable: /bin/bash
 
+    - name: Run alembic migrations
+      shell: docker compose exec -T api alembic upgrade head
+      when: db_health_check.rc == 0
+      args:
+        chdir: "{{ compose_dir }}"
+        executable: /bin/bash
+
+    - name: Import products
+      shell: docker compose exec -T api python -m retrofun.import_products
+      when: db_health_check.rc == 0
+      args:
+        chdir: "{{ compose_dir }}"
+        executable: /bin/bash
+
+    - name: Import orders
+      shell: docker compose exec -T api python -m retrofun.import_orders
+      when: db_health_check.rc == 0
+      args:
+        chdir: "{{ compose_dir }}"
+        executable: /bin/bash
