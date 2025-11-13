@@ -48,8 +48,14 @@
           - docker-compose-plugin
         state: present
         update_cache: true
+    
+    - name: Ensure Docker service is running
+      systemd:
+        name: docker
+        state: started
+        enabled: true
 
-    - name: Add ubuntu user to docker group
+    - name: Add ubuntu to docker group
       user:
         name: ubuntu
         groups: docker
@@ -76,7 +82,7 @@
         path: /home/ubuntu/retrofun_api
         state: directory
         owner: ubuntu
-        group: ubuntu
+        group: docker
         mode: '0755'
 
     - name: Clone app repo
@@ -97,11 +103,20 @@
           DATABASE_URL={{ DATABASE_URL }}
           DOCKER_IMAGE={{ DOCKER_IMAGE }}
 
-    - name: Run app using docker-compose
+    # - name: Run app using docker-compose
+    #   shell: |
+    #     cd /home/ubuntu/retrofun_api
+    #     docker compose down --remove-orphans || true
+    #     docker compose pull
+    #     make docker
+    #   args:
+    #     executable: /bin/bash
+    
+    - name: Run app using docker compose
       shell: |
         cd /home/ubuntu/retrofun_api
-        docker compose down --remove-orphans || true
-        docker compose pull
-        make docker
+        sudo docker compose down --remove-orphans || true
+        sudo docker compose pull
+        sudo make docker
       args:
         executable: /bin/bash
