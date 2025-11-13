@@ -3,6 +3,10 @@
   become: true
   vars_files:
     - ../.env.example
+  vars:
+    compose_dir: /home/ubuntu/retrofun_api
+    db_container_name: retrofun_api-db-1
+    api_container_name: retrofun_api-api-1
 
   tasks:
     - name: Update apt
@@ -79,7 +83,7 @@
 
     - name: Create app folder
       file:
-        path: /home/ubuntu/retrofun_api
+        path: "{{ compose_dir }}"
         state: directory
         owner: ubuntu
         group: docker
@@ -153,7 +157,7 @@
     #     sudo docker compose exec -T api python -m retrofun.import_orders
     #   args:
     #     executable: /bin/bash
-    
+
     - name: Ensure docker-compose services are stopped
       shell: docker compose down --remove-orphans || true
       args:
