@@ -86,37 +86,43 @@ resource "aws_instance" "retrofun_api_ec2" {
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   subnet_id              = aws_subnet.retrofun_subnet.id
 
+  user_data = <<-EOF
+    #!/bin/bash
+    exec > /var/log/user-data.log 2>&1
+
+    apt-get update -y
+    apt-get install -y ca-certificates curl gnupg lsb-release make git
+
+    mkdir -m 0755 -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+      gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+      https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    apt-get update -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    systemctl enable docker
+    systemctl start docker
+
+    usermod -aG docker ubuntu
+    mkdir -p /home/ubuntu/retrofun_api
+    chown -R ubuntu:ubuntu /home/ubuntu/retrofun_api
+  EOF
+
   tags = {
     Name = "Retrofun-API-EC2"
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      # "sudo apt update -y",
-      # "sudo apt install -y docker.io docker-compose git",
-      # "sudo usermod -aG docker ubuntu",
-      # "mkdir -p /home/ubuntu/retrofun_api",
-      # "sudo chown -R ubuntu:ubuntu /home/ubuntu/retrofun_api"
-      "sudo apt update -y",
-      "sudo apt install -y ca-certificates curl gnupg lsb-release make git",
-      "sudo mkdir -p /etc/apt/keyrings",
-      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
-      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
-      "sudo apt update -y",
-      "sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
-      "sudo usermod -aG docker ubuntu",
-      "newgrp docker",
-      "mkdir -p /home/ubuntu/retrofun_api",
-      "sudo chown -R ubuntu:ubuntu /home/ubuntu/retrofun_api"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file("~/.ssh/gitlab-ci")
-      host        = self.public_ip
-      timeout     = "5m"
-    }
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file("~/.ssh/gitlab-ci")
+    host        = self.public_ip
+    timeout     = "5m"
   }
 }
 
