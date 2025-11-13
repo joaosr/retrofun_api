@@ -12,7 +12,7 @@ variables:
 
 build:
   stage: build
-  image: docker:24
+  image: docker:27
   services:
     - docker:dind
   script:
