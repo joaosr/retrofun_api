@@ -23,18 +23,23 @@ services:
       - db-data:/var/lib/postgresql
   api:
     image: ${DOCKER_IMAGE}
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
+    # ports:
+    #   - "8000:8000"
     depends_on:
-      - db
+      db: 
+        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL}
     networks:
       - retrofun
     env_file:
       - .env
+    expose:
+      - "8000"
   nginx:
     image: nginx:alpine
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
