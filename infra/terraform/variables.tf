@@ -16,7 +16,7 @@ variable "public_key_path" {
 variable "app_port" {
   description = "Port exposed by your FastAPI app"
   type        = number
-  default     = 8000
+  default     = 80
 }
 
 variable "instance_type" {
