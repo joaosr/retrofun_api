@@ -1,3 +1,27 @@
+module "postgres" {
+  source = "./modules/postgres-ec2"
+
+  name              = "my-postgres"
+  vpc_id            = aws_vpc.main.id
+  subnet_id         = aws_subnet.private_a.id
+  key_name          = var.key_pair_name
+  allowed_cidrs     = ["10.0.0.0/16"]
+  ami_id            = var.ami_id
+  instance_type     = "r7g.large"
+
+  pgdata_size       = 200
+  pgdata_type       = "gp3"
+  pgdata_iops       = 6000
+  pgdata_throughput = 250
+
+  alarm_topic_arn   = var.alarm_sns_topic
+
+  tags = {
+    Project = "your-app"
+    Env     = var.env
+  }
+}
+
 resource "aws_key_pair" "deployer_key" {
   key_name   = var.key_pair_name
   public_key = file(var.public_key_path)

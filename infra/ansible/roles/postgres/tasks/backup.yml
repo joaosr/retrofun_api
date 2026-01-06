@@ -1,0 +1,20 @@
+- name: Install wal-g
+  get_url:
+    url: https://github.com/wal-g/wal-g/releases/download/v2.0.1/wal-g-amd64
+    dest: /usr/local/bin/wal-g
+    mode: '0755'
+
+- name: Configure WAL-G
+  copy:
+    dest: /etc/wal-g.d/server.conf
+    mode: '0600'
+    content: |
+      WALG_S3_PREFIX=s3://{{ backup_bucket }}/{{ inventory_hostname }}
+      AWS_REGION={{ aws_region }}
+
+- name: Add cron for base backup
+  cron:
+    name: "daily base backup"
+    job: "wal-g backup-push /var/lib/postgresql/data >> /var/log/walg.log 2>&1"
+    hour: 2
+    minute: 0

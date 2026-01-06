@@ -1,0 +1,11 @@
+- name: Configure postgresql.conf
+  template:
+    src: postgresql.conf.j2
+    dest: /etc/postgresql/16/main/postgresql.conf
+  notify: restart postgres
+
+- name: Configure pg_hba.conf
+  template:
+    src: pg_hba.conf.j2
+    dest: /etc/postgresql/16/main/pg_hba.conf
+  notify: restart postgres

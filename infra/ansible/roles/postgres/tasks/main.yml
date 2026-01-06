@@ -1,0 +1,4 @@
+- include_tasks: volume.yml
+- include_tasks: install.yml
+- include_tasks: tune.yml
+- include_tasks: backup.yml
